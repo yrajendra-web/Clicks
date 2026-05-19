@@ -1,0 +1,66 @@
+name: Daily Clicks Report
+
+on:
+  schedule:
+    # Runs daily at 9:00 AM UTC
+    - cron: '0 9 * * *'
+
+  workflow_dispatch:
+
+jobs:
+  run-report:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set Up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          else
+            pip install pymongo[srv] pandas gspread google-auth python-dotenv numpy certifi
+          fi
+
+      - name: Generate credentials.json
+        run: |
+          cat <<EOF > credentials.json
+          ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
+          EOF
+
+      - name: Generate .env
+        run: |
+          cat <<EOF > .env
+          ${{ secrets.ENV_FILE_CONTENTS }}
+          EOF
+
+      - name: Verify Generated Files
+        run: |
+          ls -la
+          test -f credentials.json && echo "credentials.json created"
+          test -f .env && echo ".env created"
+
+      - name: Run Clicks Script for Yesterday
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: |
+          YESTERDAY=$(date -d "yesterday" '+%Y-%m-%d')
+
+          echo "🚀 Running report for: $YESTERDAY"
+
+          python clicks.py "$YESTERDAY"
+
+      - name: Cleanup Sensitive Files
+        if: always()
+        run: |
+          rm -f credentials.json
+          rm -f .env
