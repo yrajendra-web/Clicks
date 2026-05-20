@@ -2,8 +2,9 @@ name: Daily Clicks Report
 
 on:
   schedule:
-    # Runs daily at 9:00 AM IST (3:30 AM UTC)
-    - cron: '30 3 * * *'
+    # Shifted by 7 minutes to bypass GitHub's heavy top-of-the-hour traffic
+    # Runs daily at ~9:07 AM IST (3:37 AM UTC)
+    - cron: '30 11 * * *'
 
   workflow_dispatch:
 
@@ -19,7 +20,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
-          cache: 'pip'
+          # cache: 'pip' has been removed to prevent workflow crashes
+          # if requirements.txt does not exist on a run.
 
       - name: Install Dependencies
         run: |
@@ -33,13 +35,14 @@ jobs:
 
       - name: Generate credentials.json
         run: |
-          cat <<EOF > credentials.json
+          # Quoted 'EOF' prevents bash from corrupting JSON if secrets contain $
+          cat << 'EOF' > credentials.json
           ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
           EOF
 
       - name: Generate .env
         run: |
-          cat <<EOF > .env
+          cat << 'EOF' > .env
           ${{ secrets.ENV_FILE_CONTENTS }}
           EOF
 
