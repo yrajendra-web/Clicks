@@ -2,7 +2,7 @@ name: Daily Clicks Report
 
 on:
   schedule:
-    # 1:30 PM IST = 8:00 PM UTC
+    # 1:30 AM IST = 8:00 PM UTC
     - cron: '00 20 * * *'
   workflow_dispatch:
 
