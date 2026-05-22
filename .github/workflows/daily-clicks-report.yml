@@ -1,56 +1,69 @@
-name: Daily Clicks Report
+# name: Daily Clicks Report
 
-on:
-  schedule:
-    # 1:30 AM IST = 8:00 PM UTC
-    - cron: '00 20 * * *'
-  workflow_dispatch:
+# on:
+#   schedule:
+#     # Shifted by 7 minutes to bypass GitHub's heavy top-of-the-hour traffic
+#     # Runs daily at ~9:07 AM IST (3:37 AM UTC)
+#     #- cron: '30 11 * * *'
 
-jobs:
-  run-report:
-    runs-on: ubuntu-latest
+#   workflow_dispatch:
 
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+# jobs:
+#   run-report:
+#     runs-on: ubuntu-latest
 
-      - name: Set Up Python 3.13
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
+#     steps:
+#       - name: Checkout Repository
+#         uses: actions/checkout@v4
 
-      - name: Install Dependencies
-        run: |
-          python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then
-            pip install -r requirements.txt
-          else
-            pip install pymongo[srv] pandas gspread google-auth python-dotenv numpy certifi
-          fi
+#       - name: Set Up Python 3.13
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: '3.13'
+#           # cache: 'pip' has been removed to prevent workflow crashes
+#           # if requirements.txt does not exist on a run.
 
-      - name: Generate Sensitive Files
-        shell: bash
-        run: |
-          # Using cat << 'EOF' prevents shell expansion of secrets
-          cat << 'EOF' > credentials.json
-          ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
-          EOF
+#       - name: Install Dependencies
+#         run: |
+#           python -m pip install --upgrade pip
 
-          cat << 'EOF' > .env
-          ${{ secrets.ENV_FILE_CONTENTS }}
-          EOF
+#           if [ -f requirements.txt ]; then
+#             pip install -r requirements.txt
+#           else
+#             pip install pymongo[srv] pandas gspread google-auth python-dotenv numpy certifi
+#           fi
 
-      - name: Run Clicks Script
-        env:
-          PYTHONUNBUFFERED: "1"
-        run: |
-          # Use date with UTC to ensure consistency
-          YESTERDAY=$(date -u -d "yesterday" '+%Y-%m-%d')
-          echo "🚀 Running report for: $YESTERDAY"
-          python clicks.py "$YESTERDAY"
+#       - name: Generate credentials.json
+#         run: |
+#           # Quoted 'EOF' prevents bash from corrupting JSON if secrets contain $
+#           cat << 'EOF' > credentials.json
+#           ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
+#           EOF
 
-      - name: Cleanup Sensitive Files
-        if: always()
-        run: |
-          rm -f credentials.json
-          rm -f .env
+#       - name: Generate .env
+#         run: |
+#           cat << 'EOF' > .env
+#           ${{ secrets.ENV_FILE_CONTENTS }}
+#           EOF
+
+#       - name: Verify Generated Files
+#         run: |
+#           ls -la
+#           test -f credentials.json && echo "credentials.json created"
+#           test -f .env && echo ".env created"
+
+#       - name: Run Clicks Script for Yesterday
+#         env:
+#           PYTHONUNBUFFERED: "1"
+#         run: |
+#           YESTERDAY=$(date -d "yesterday" '+%Y-%m-%d')
+
+#           echo "🚀 Running report for: $YESTERDAY"
+
+#           python clicks.py "$YESTERDAY"
+
+#       - name: Cleanup Sensitive Files
+#         if: always()
+#         run: |
+#           rm -f credentials.json
+#           rm -f .env
